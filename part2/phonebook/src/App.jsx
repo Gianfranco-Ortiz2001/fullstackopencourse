@@ -3,12 +3,15 @@ import personService from './services/persons'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
+import Notification from './components/Notification'
 
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [newFilter, setNewFilter] = useState('')
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [isError, setIsError] = useState(false)
   const personsToShow = persons.filter(person =>
     person.name.toLowerCase().includes(newFilter.toLowerCase())
   )
@@ -47,6 +50,10 @@ const App = () => {
         setPersons(persons.concat(response))
         setNewName('')
         setNewNumber('')
+        setNotificationMessage(`Added ${response.name}`)
+        setTimeout(() => {
+          setNotificationMessage(null)
+        }, 5000)
       })
   }
 
@@ -69,15 +76,28 @@ const App = () => {
   }
 
   const updatePersonNumber = (person, newNumber) => {
-    const changedPerson = {...person, number:newNumber}
+    const changedPerson = { ...person, number: newNumber }
 
     personService
-    .update(person.id, changedPerson)
-    .then(returnedPerson => {
-      setPersons(persons.map(p => p.id !== person.id? p : returnedPerson))
-      setNewName('')
-      setNewNumber('')
-    })
+      .update(person.id, changedPerson)
+      .then(returnedPerson => {
+        setPersons(persons.map(p => p.id !== person.id ? p : returnedPerson))
+        setNewName('')
+        setNewNumber('')
+        setNotificationMessage(`Updated ${returnedPerson.name}'s number`)
+        setTimeout(() => {
+          setNotificationMessage(null)
+        }, 5000)
+      })
+      .catch(error => {
+        setNotificationMessage(`Information on ${person.name} has already been removed from server`)
+        setIsError(true)
+        setTimeout(() => {
+          setNotificationMessage(null)
+          setIsError(false)
+        }, 5000)
+        setPersons(persons.filter(p => p.id !== person.id))
+      })
   }
 
   const handleForm = (event) => {
@@ -100,6 +120,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage} isError={isError} />
       <Filter newFilter={newFilter} handleFilterChange={handleFilterChange} />
       <h2>add a new</h2>
       <PersonForm newName={newName}
